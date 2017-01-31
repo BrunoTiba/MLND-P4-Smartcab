@@ -45,7 +45,6 @@ class LearningAgent(Agent):
             self.alpha = 0;
         else:
             self.epsilon = 1 - 0.001 * self.t
-            #self.alpha = self.epsilon / 2
             self.t += 1
 
         return None
@@ -67,14 +66,11 @@ class LearningAgent(Agent):
         # When learning, check if the state is in the Q-table
         #   If it is not, create a dictionary in the Q-table for the current 'state'
         #   For each action, set the Q-value for the state-action pair to 0
-        state = (waypoint, inputs['light'], inputs['left'], inputs['right'], inputs['oncoming'])
-        #state = (waypoint, inputs['light'], inputs['left'], inputs['oncoming'])
+        state = (waypoint, inputs['light'], inputs['left'], inputs['oncoming'])
         
-        if self.learning and state not in self.Q.keys():
-            actions = {}
-            for action in self.valid_actions: 
-                actions[action] = 0
-            self.Q[state] = actions
+        if self.learning and state not in self.Q:
+            self.Q[state] = {action: 0.0 for action in self.valid_actions}
+            
         return state
 
 
@@ -89,11 +85,11 @@ class LearningAgent(Agent):
         maxQ = 0
         
         if state in self.Q.keys():
-            for action in self.valid_actions:
-                if self.Q[state][action] > maxQ:
-                    maxQ = self.Q[state][action]
+            curMax = max(self.Q[state].values())
+            if curMax > maxQ:
+                maxQ = curMax
 
-        return maxQ 
+        return max(self.Q[state].values())
 
 
     def createQ(self, state):
@@ -133,11 +129,8 @@ class LearningAgent(Agent):
                 action = random.choice(self.valid_actions)
             else:
                 maxQ = self.get_maxQ(state)
-                actions = []
-                for a in self.valid_actions:
-                    if self.Q[state][a] == maxQ:
-                        actions.append(a)
-                action = random.choice(actions)
+                best_actions = [action for action in self.valid_actions if self.Q[state][action] == maxQ]
+                action = random.choice(best_actions)
  
         return action
 
@@ -153,7 +146,7 @@ class LearningAgent(Agent):
         # When learning, implement the value iteration update rule
         #   Use only the learning rate 'alpha' (do not use the discount factor 'gamma')
         if self.learning:
-            self.Q[state][action] += self.alpha * (reward + self.get_maxQ(action) - self.Q[state][action])
+            self.Q[state][action] = (1 - self.alpha) * self.Q[state][action] + self.alpha * reward
 
         return
 
@@ -212,7 +205,7 @@ def run():
     # Flags:
     #   tolerance  - epsilon tolerance before beginning testing, default is 0.05 
     #   n_test     - discrete number of testing trials to perform, default is 0
-    sim.run(n_test=200)
+    sim.run(n_test=100)
 
 
 if __name__ == '__main__':
